@@ -1,0 +1,9 @@
+node_modules
+dist
+pnpm-lock.yaml
+data
+wiki/.obsidian
+coverage
+.husky
+_bmad
+_bmad-output

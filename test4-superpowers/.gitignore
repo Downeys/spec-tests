@@ -1,0 +1,26 @@
+.superpowers/
+.worktrees/
+node_modules/
+.env
+.env.local
+dist/
+build/
+
+# Build
+dist/
+*.tsbuildinfo
+
+# Vitest
+coverage/
+.vitest-cache/
+
+# Compilation lock
+vault/.compile.lock
+
+# Local snapshots
+snapshots/
+
+# Playwright
+playwright-report/
+test-results/
+.playwright/

@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Business Planner — Layout Directions</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #111113;
+    color: #e4e4e7;
+    font-size: 15px;
+    line-height: 1.5;
+  }
+
+  /* --- Nav --- */
+  .nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    background: #18181b; border-bottom: 1px solid #3f3f46;
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 24px; height: 48px;
+  }
+  .nav-title { font-weight: 600; font-size: 14px; color: #a1a1aa; margin-right: 16px; }
+  .nav button {
+    background: #27272a; color: #e4e4e7; border: 1px solid #3f3f46;
+    padding: 6px 16px; border-radius: 6px; cursor: pointer; font-size: 13px;
+    transition: all 0.15s;
+  }
+  .nav button:hover { background: #3f3f46; }
+  .nav button.active { background: #3b82f6; border-color: #3b82f6; color: #fff; }
+  .nav .desc { margin-left: auto; font-size: 12px; color: #71717a; max-width: 500px; text-align: right; }
+
+  /* --- Mockup container --- */
+  .mockup { display: none; margin-top: 48px; height: calc(100vh - 48px); position: relative; }
+  .mockup.active { display: flex; }
+
+  /* --- Status bar --- */
+  .status-bar {
+    display: flex; align-items: center; gap: 16px;
+    padding: 0 16px; height: 32px; min-height: 32px;
+    background: #18181b; border-color: #3f3f46;
+    font-size: 12px; color: #a1a1aa;
+  }
+  .status-bar.top { border-bottom: 1px solid #3f3f46; }
+  .status-bar.bottom { border-top: 1px solid #3f3f46; }
+  .status-project { color: #60a5fa; font-weight: 500; }
+  .status-cost { margin-left: auto; }
+  .health-gauge {
+    width: 120px; height: 6px; background: #27272a; border-radius: 3px; overflow: hidden;
+  }
+  .health-fill {
+    height: 100%; border-radius: 3px;
+    background: linear-gradient(90deg, #22c55e 0%, #22c55e 60%, #eab308 80%, #ef4444 100%);
+    width: 65%;
+  }
+  .health-label { font-size: 11px; }
+
+  /* --- Sidebar --- */
+  .sidebar {
+    width: 320px; min-width: 320px;
+    background: #18181b; border-right: 1px solid #3f3f46;
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  .sidebar-header {
+    padding: 12px; border-bottom: 1px solid #3f3f46;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .sidebar-header h3 { font-size: 13px; font-weight: 600; color: #a1a1aa; text-transform: uppercase; letter-spacing: 0.5px; }
+  .sidebar-tabs {
+    display: flex; border-bottom: 1px solid #3f3f46;
+  }
+  .sidebar-tab {
+    flex: 1; padding: 8px; text-align: center; font-size: 12px; color: #71717a;
+    cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.15s;
+  }
+  .sidebar-tab.active { color: #60a5fa; border-bottom-color: #60a5fa; }
+  .sidebar-content { flex: 1; overflow-y: auto; padding: 12px; }
+  .wiki-item {
+    padding: 8px; border-radius: 4px; cursor: pointer; margin-bottom: 2px;
+    font-size: 13px; color: #a1a1aa; transition: background 0.1s;
+  }
+  .wiki-item:hover { background: #27272a; color: #e4e4e7; }
+  .wiki-item.active { background: #27272a; color: #e4e4e7; border-left: 2px solid #60a5fa; padding-left: 6px; }
+  .wiki-category { font-size: 11px; color: #52525b; text-transform: uppercase; letter-spacing: 0.5px; padding: 8px 8px 4px; margin-top: 8px; }
+  .wiki-category:first-child { margin-top: 0; }
+
+  /* --- Overlay sidebar --- */
+  .sidebar.overlay {
+    position: absolute; left: 0; top: 0; bottom: 0; z-index: 10;
+    box-shadow: 4px 0 24px rgba(0,0,0,0.5);
+  }
+
+  /* --- Chat area --- */
+  .chat-area {
+    flex: 1; display: flex; flex-direction: column; min-width: 0;
+    background: #111113;
+  }
+  .chat-stream {
+    flex: 1; overflow-y: auto; padding: 16px 0;
+    display: flex; flex-direction: column; align-items: center;
+  }
+  .chat-content { width: 100%; max-width: 800px; padding: 0 24px; }
+
+  /* --- Messages --- */
+  .msg { margin-bottom: 8px; }
+  .msg-user {
+    background: #1e3a5f; border-radius: 8px; padding: 12px;
+    border: 1px solid #2563eb33;
+  }
+  .msg-user .msg-label { color: #60a5fa; }
+  .msg-agent { padding: 12px 0; }
+  .msg-label { font-size: 12px; font-weight: 600; margin-bottom: 4px; }
+  .msg-agent .msg-label { color: #a1a1aa; }
+
+  /* --- Skeptic variations --- */
+  .skeptic-border {
+    border-left: 3px solid #f59e0b;
+    padding: 12px; padding-left: 14px;
+    margin: 8px 0;
+    background: transparent;
+  }
+  .skeptic-border .msg-label { color: #f59e0b; }
+
+  .skeptic-tint {
+    background: #78350f18;
+    border: 1px solid #f59e0b30;
+    border-radius: 6px;
+    padding: 12px;
+    margin: 8px 0;
+  }
+  .skeptic-tint .msg-label { color: #f59e0b; }
+
+  .skeptic-icon {
+    padding: 12px;
+    margin: 8px 0;
+    position: relative;
+    padding-left: 32px;
+  }
+  .skeptic-icon .msg-label { color: #f59e0b; }
+  .skeptic-icon::before {
+    content: "⚡";
+    position: absolute; left: 8px; top: 14px;
+    font-size: 14px;
+  }
+  .skeptic-icon .skeptic-badge {
+    display: inline-block;
+    background: #78350f;
+    color: #fbbf24;
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 3px;
+    margin-left: 6px;
+    font-weight: 500;
+    vertical-align: middle;
+  }
+
+  /* --- Tool calls --- */
+  .tool-call {
+    margin: 6px 0;
+    border-radius: 4px;
+    font-size: 13px;
+    color: #71717a;
+  }
+  .tool-header {
+    display: flex; align-items: center; gap: 6px;
+    cursor: pointer; padding: 4px 0;
+    user-select: none;
+  }
+  .tool-header:hover { color: #a1a1aa; }
+  .tool-chevron { font-size: 10px; transition: transform 0.15s; display: inline-block; }
+  .tool-chevron.open { transform: rotate(90deg); }
+  .tool-detail {
+    display: none; padding: 8px 12px; margin-top: 4px;
+    background: #1a1a1e; border-radius: 4px; border: 1px solid #27272a;
+    font-family: "Fira Code", "Cascadia Code", "JetBrains Mono", Consolas, monospace;
+    font-size: 12px; line-height: 1.4; color: #71717a;
+  }
+  .tool-detail.open { display: block; }
+
+  /* --- Citations --- */
+  .citation {
+    display: inline-block;
+    background: #164e63;
+    color: #22d3ee;
+    font-size: 11px;
+    padding: 1px 5px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-weight: 500;
+    text-decoration: none;
+    margin: 0 1px;
+    vertical-align: baseline;
+  }
+  .citation:hover { background: #155e75; }
+
+  /* --- Confidence badges --- */
+  .confidence {
+    display: inline-block;
+    font-size: 10px;
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-weight: 500;
+    margin-left: 4px;
+  }
+  .confidence.high { background: #14532d; color: #4ade80; }
+  .confidence.medium { background: #713f12; color: #fbbf24; }
+  .confidence.low { background: #7f1d1d; color: #f87171; }
+
+  /* --- Input area --- */
+  .input-area {
+    padding: 12px 24px; border-top: 1px solid #3f3f46;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .input-wrap {
+    max-width: 800px; width: 100%; display: flex; gap: 8px; align-items: flex-end;
+  }
+  .input-box {
+    flex: 1; background: #27272a; border: 1px solid #3f3f46; border-radius: 8px;
+    padding: 10px 14px; color: #e4e4e7; font-size: 15px; font-family: inherit;
+    resize: none; outline: none; min-height: 40px;
+  }
+  .input-box:focus { border-color: #3b82f6; }
+  .input-box::placeholder { color: #52525b; }
+  .send-btn {
+    background: #3b82f6; color: #fff; border: none; border-radius: 8px;
+    padding: 10px 16px; cursor: pointer; font-size: 14px; font-weight: 500;
+    white-space: nowrap;
+  }
+  .send-btn:hover { background: #2563eb; }
+
+  /* --- Sidebar toggle --- */
+  .sidebar-toggle {
+    background: none; border: none; color: #71717a; cursor: pointer;
+    font-size: 16px; padding: 4px 8px; border-radius: 4px;
+  }
+  .sidebar-toggle:hover { background: #27272a; color: #e4e4e7; }
+
+  /* --- Toast --- */
+  .toast {
+    position: absolute; bottom: 80px; right: 24px;
+    background: #14532d; border: 1px solid #22c55e40; color: #4ade80;
+    padding: 8px 16px; border-radius: 6px; font-size: 13px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .toast-icon { font-size: 14px; }
+
+  /* --- Decision log entry --- */
+  .decision-log {
+    margin: 8px 0; padding: 12px;
+    background: #1a1a2e; border: 1px solid #3b82f640;
+    border-radius: 6px; font-size: 13px;
+  }
+  .decision-log .dl-header {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12px; font-weight: 600; color: #60a5fa; margin-bottom: 6px;
+  }
+  .decision-log .dl-body { color: #a1a1aa; }
+  .decision-log .dl-against { color: #fbbf24; font-size: 12px; margin-top: 4px; }
+</style>
+</head>
+<body>
+
+<div class="nav">
+  <span class="nav-title">Layout Directions</span>
+  <button class="active" onclick="show(0)">A: Push Sidebar + Top Status</button>
+  <button onclick="show(1)">B: Overlay Sidebar + Bottom Status</button>
+  <button onclick="show(2)">C: No Sidebar + Bottom Status</button>
+  <span class="desc" id="nav-desc">Sidebar pushes chat content. Status bar at top. Skeptic: left border accent.</span>
+</div>
+
+<!-- ==================== DIRECTION A ==================== -->
+<div class="mockup active" id="mockup-0">
+  <!-- Status bar top -->
+  <div style="position:absolute;top:0;left:0;right:0;display:flex;flex-direction:column;height:100%;">
+    <div class="status-bar top">
+      <span class="status-project">radio-app</span>
+      <span>|</span>
+      <span>Context:</span>
+      <div class="health-gauge"><div class="health-fill"></div></div>
+      <span class="health-label" style="color:#eab308;">65%</span>
+      <span class="status-cost">Session: ~$0.42</span>
+    </div>
+    <div style="flex:1;display:flex;overflow:hidden;">
+      <!-- Sidebar (push) -->
+      <div class="sidebar" id="sidebar-a">
+        <div class="sidebar-header">
+          <h3>Wiki</h3>
+          <button class="sidebar-toggle" onclick="document.getElementById('sidebar-a').style.display='none'">✕</button>
+        </div>
+        <div class="sidebar-tabs">
+          <div class="sidebar-tab active">Wiki</div>
+          <div class="sidebar-tab">Projects</div>
+          <div class="sidebar-tab">Decisions</div>
+        </div>
+        <div class="sidebar-content">
+          <div class="wiki-category">Frameworks</div>
+          <div class="wiki-item active">Porter's Five Forces</div>
+          <div class="wiki-item">Business Model Canvas</div>
+          <div class="wiki-item">Blue Ocean Strategy</div>
+          <div class="wiki-item">Jobs-to-be-Done</div>
+          <div class="wiki-category">Methodology</div>
+          <div class="wiki-item">Market Validation Sequence</div>
+          <div class="wiki-item">Evaluating Niche Markets</div>
+          <div class="wiki-item">Evidence Grading</div>
+          <div class="wiki-category">Learnings</div>
+          <div class="wiki-item">Hyperlocal Ad Revenue</div>
+          <div class="wiki-item">Small Sample Pitfalls</div>
+        </div>
+      </div>
+      <!-- Chat -->
+      <div class="chat-area">
+        <div class="chat-stream">
+          <div class="chat-content">
+            <!-- User message -->
+            <div class="msg">
+              <div class="msg-user">
+                <div class="msg-label">You</div>
+                I want to understand who else is doing local internet radio and how they're monetizing.
+              </div>
+            </div>
+            <!-- Tool calls -->
+            <div class="msg">
+              <div class="tool-call">
+                <div class="tool-header" onclick="toggleTool(this)">
+                  <span class="tool-chevron">▶</span>
+                  <span>Searching Tavily: "local internet radio stations monetization models 2025"</span>
+                </div>
+                <div class="tool-detail">
+                  Query: "local internet radio stations monetization models 2025"<br>
+                  Results: 12 sources found<br>
+                  Relevant: 7 sources matched criteria<br>
+                  Time: 4.2s
+                </div>
+              </div>
+              <div class="tool-call">
+                <div class="tool-header" onclick="toggleTool(this)">
+                  <span class="tool-chevron">▶</span>
+                  <span>Searching Tavily: "hyperlocal streaming radio revenue small market"</span>
+                </div>
+                <div class="tool-detail">
+                  Query: "hyperlocal streaming radio revenue small market"<br>
+                  Results: 8 sources found<br>
+                  Relevant: 3 sources matched criteria<br>
+                  Time: 3.8s
+                </div>
+              </div>
+              <div class="tool-call">
+                <div class="tool-header" onclick="toggleTool(this)">
+                  <span class="tool-chevron">▶</span>
+                  <span>Storing findings → Pinecone (radio-app/competitive-landscape)</span>
+                </div>
+                <div class="tool-detail">
+                  Namespace: radio-app<br>
+                  Category: competitive-landscape<br>
+                  Vectors stored: 7<br>
+                  Status: ✓ confirmed
+                </div>
+              </div>
+            </div>
+            <!-- Agent response -->
+            <div class="msg">
+              <div class="msg-agent">
+                <div class="msg-label">Agent</div>
+                <p>I found seven competitors across three monetization models:</p>
+                <p style="margin-top:8px;"><strong>1. Local ad-supported</strong> (3 stations): WFMU <a class="citation" title="Source: Current.org — industry analysis">1</a>, BFF.fm <a class="citation" title="Source: BFF.fm annual report 2024">2</a>, and RadioFreeNashville <a class="citation" title="Source: Nashville Scene interview">3</a> all rely primarily on local business advertising. Revenue data is limited — only BFF.fm publishes figures ($180K/year). <span class="confidence medium">medium confidence</span></p>
+                <p style="margin-top:8px;"><strong>2. Listener-supported / donations</strong> (2 stations): Both operate on a public-radio model with pledge drives and Patreon. <a class="citation" title="Source: Patreon public pages">4</a> <a class="citation" title="Source: Station websites">5</a> <span class="confidence high">high confidence</span></p>
+                <p style="margin-top:8px;"><strong>3. Hybrid</strong> (2 stations): Combination of local ads, listener donations, and event revenue. <a class="citation" title="Source: IndieHackers case study">6</a> <a class="citation" title="Source: Local news feature">7</a> <span class="confidence low">low confidence — limited data</span></p>
+              </div>
+            </div>
+            <!-- Skeptic (left border) -->
+            <div class="msg">
+              <div class="skeptic-border">
+                <div class="msg-label">Skeptic</div>
+                <p>Three of these competitors launched in markets 10x larger than your target. The monetization data may not transfer to a local market. The sample size for local-only stations is small — only two examples, both with unclear revenue data. Confidence in the monetization analysis is low.</p>
+                <p style="margin-top:8px;">Specifically: BFF.fm operates in San Francisco (population 870K). Your target market is under 100K. The per-capita ad spend assumptions don't scale linearly. <a class="citation" title="Source: Census.gov metro area data">8</a></p>
+              </div>
+            </div>
+            <!-- User reply -->
+            <div class="msg">
+              <div class="msg-user">
+                <div class="msg-label">You</div>
+                Local advertising is fundamentally different — national comparisons don't apply. Small-market businesses have different relationships with local media.
+              </div>
+            </div>
+            <!-- Agent steelmanning -->
+            <div class="msg">
+              <div class="msg-agent">
+                <div class="msg-label">Agent — Steelmanning your position</div>
+                <p>Searching for evidence that local ad models work independently of market scale...</p>
+              </div>
+            </div>
+            <div class="msg">
+              <div class="tool-call">
+                <div class="tool-header" onclick="toggleTool(this)">
+                  <span class="tool-chevron">▶</span>
+                  <span>Searching Tavily: "hyperlocal media advertising small market success case study"</span>
+                </div>
+                <div class="tool-detail">
+                  Query: "hyperlocal media advertising small market success case study"<br>
+                  Results: 6 sources found<br>
+                  Time: 3.1s
+                </div>
+              </div>
+            </div>
+            <div class="msg">
+              <div class="msg-agent">
+                <div class="msg-label">Agent</div>
+                <p>Found two case studies supporting your position:</p>
+                <p style="margin-top:8px;"><strong>For your view:</strong> A hyperlocal news site in Vermont (pop. 45K) generates $120K/year from local ads <a class="citation" title="Source: Nieman Lab case study 2024">9</a>. A community radio station in rural Oregon sustains on 40 local advertisers <a class="citation" title="Source: Oregon Public Broadcasting feature">10</a>. Both demonstrate that local ad relationships can work at small scale. <span class="confidence medium">medium confidence</span></p>
+                <p style="margin-top:8px;"><strong>Against your view:</strong> The skeptic's point stands — sample size is small, and the Vermont site took 3 years to reach profitability. The evidence gap on local-only internet radio revenue remains real. <span class="confidence medium">medium confidence</span></p>
+              </div>
+            </div>
+            <!-- Decision log -->
+            <div class="msg">
+              <div class="decision-log">
+                <div class="dl-header">📋 Decision Logged</div>
+                <div class="dl-body">Proceeding with local ad revenue as primary monetization hypothesis.</div>
+                <div class="dl-against">⚠ Decision made with acknowledged evidence gap — local-market transferability data is limited. Skeptic concern preserved.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Input -->
+        <div class="input-area">
+          <div class="input-wrap">
+            <textarea class="input-box" rows="1" placeholder="Ask a question or raise a topic..."></textarea>
+            <button class="send-btn">Send</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== DIRECTION B ==================== -->
+<div class="mockup" id="mockup-1">
+  <div style="position:absolute;top:0;left:0;right:0;display:flex;flex-direction:column;height:100%;">
+    <div style="flex:1;display:flex;overflow:hidden;position:relative;">
+      <!-- Sidebar (overlay) -->
+      <div class="sidebar overlay" id="sidebar-b">
+        <div class="sidebar-header">
+          <h3>Wiki</h3>
+          <button class="sidebar-toggle" onclick="document.getElementById('sidebar-b').style.display='none'">✕</button>
+        </div>
+        <div class="sidebar-tabs">
+          <div class="sidebar-tab active">Wiki</div>
+          <div class="sidebar-tab">Projects</div>
+          <div class="sidebar-tab">Decisions</div>
+        </div>
+        <div class="sidebar-content">
+          <div class="wiki-category">Frameworks</div>
+          <div class="wiki-item active">Porter's Five Forces</div>
+          <div class="wiki-item">Business Model Canvas</div>
+          <div class="wiki-item">Blue Ocean Strategy</div>
+          <div class="wiki-item">Jobs-to-be-Done</div>
+          <div class="wiki-category">Methodology</div>
+          <div class="wiki-item">Market Validation Sequence</div>
+          <div class="wiki-item">Evaluating Niche Markets</div>
+          <div class="wiki-item">Evidence Grading</div>
+          <div class="wiki-category">Learnings</div>
+          <div class="wiki-item">Hyperlocal Ad Revenue</div>
+          <div class="wiki-item">Small Sample Pitfalls</div>
+        </div>
+      </div>
+      <!-- Chat (full width, sidebar overlays) -->
+      <div class="chat-area">
+        <div style="padding:4px 16px;display:flex;align-items:center;gap:8px;border-bottom:1px solid #27272a;">
+          <button class="sidebar-toggle" onclick="document.getElementById('sidebar-b').style.display=document.getElementById('sidebar-b').style.display==='none'?'flex':'none'" title="Toggle wiki panel">☰</button>
+          <span style="font-size:12px;color:#52525b;">Toggle wiki panel</span>
+        </div>
+        <div class="chat-stream">
+          <div class="chat-content">
+            <!-- User message -->
+            <div class="msg">
+              <div class="msg-user">
+                <div class="msg-label">You</div>
+                I want to understand who else is doing local internet radio and how they're monetizing.
+              </div>
+            </div>
+            <!-- Tool calls -->
+            <div class="msg">
+              <div class="tool-call">
+                <div class="tool-header" onclick="toggleTool(this)">
+                  <span class="tool-chevron">▶</span>
+                  <span>Searching Tavily: "local internet radio stations monetization models 2025"</span>
+                </div>
+                <div class="tool-detail">
+                  Query: "local internet radio stations monetization models 2025"<br>
+                  Results: 12 sources found<br>
+                  Relevant: 7 sources matched criteria<br>
+                  Time: 4.2s
+                </div>
+              </div>
+              <div class="tool-call">
+                <div class="tool-header" onclick="toggleTool(this)">
+                  <span class="tool-chevron">▶</span>
+                  <span>Storing findings → Pinecone (radio-app/competitive-landscape)</span>
+                </div>
+                <div class="tool-detail">
+                  Namespace: radio-app<br>
+                  Vectors stored: 7<br>
+                  Status: ✓ confirmed
+                </div>
+              </div>
+            </div>
+            <!-- Agent response -->
+            <div class="msg">
+              <div class="msg-agent">
+                <div class="msg-label">Agent</div>
+                <p>I found seven competitors across three monetization models:</p>
+                <p style="margin-top:8px;"><strong>1. Local ad-supported</strong> (3 stations): WFMU <a class="citation" title="Source: Current.org — industry analysis">1</a>, BFF.fm <a class="citation" title="Source: BFF.fm annual report 2024">2</a>, and RadioFreeNashville <a class="citation" title="Source: Nashville Scene interview">3</a> all rely primarily on local business advertising. Revenue data is limited — only BFF.fm publishes figures ($180K/year). <span class="confidence medium">medium confidence</span></p>
+                <p style="margin-top:8px;"><strong>2. Listener-supported / donations</strong> (2 stations): Both operate on a public-radio model. <a class="citation" title="Source: Patreon public pages">4</a> <a class="citation" title="Source: Station websites">5</a> <span class="confidence high">high confidence</span></p>
+                <p style="margin-top:8px;"><strong>3. Hybrid</strong> (2 stations): Combination of local ads, listener donations, and event revenue. <a class="citation" title="Source: IndieHackers case study">6</a> <a class="citation" title="Source: Local news feature">7</a> <span class="confidence low">low confidence — limited data</span></p>
+              </div>
+            </div>
+            <!-- Skeptic (background tint) -->
+            <div class="msg">
+              <div class="skeptic-tint">
+                <div class="msg-label">Skeptic</div>
+                <p>Three of these competitors launched in markets 10x larger than your target. The monetization data may not transfer to a local market. The sample size for local-only stations is small — only two examples, both with unclear revenue data.</p>
+                <p style="margin-top:8px;">BFF.fm operates in San Francisco (population 870K). Your target market is under 100K. The per-capita ad spend assumptions don't scale linearly. <a class="citation" title="Source: Census.gov metro area data">8</a></p>
+              </div>
+            </div>
+            <!-- User reply -->
+            <div class="msg">
+              <div class="msg-user">
+                <div class="msg-label">You</div>
+                Local advertising is fundamentally different — national comparisons don't apply.
+              </div>
+            </div>
+            <!-- Steelmanning -->
+            <div class="msg">
+              <div class="msg-agent">
+                <div class="msg-label">Agent — Steelmanning your position</div>
+                <p>Found two case studies supporting your position:</p>
+                <p style="margin-top:8px;"><strong>For:</strong> Vermont hyperlocal news (pop. 45K) → $120K/year local ads <a class="citation" title="Source: Nieman Lab 2024">9</a>. Oregon community radio → 40 local advertisers <a class="citation" title="Source: OPB feature">10</a>. <span class="confidence medium">medium</span></p>
+                <p style="margin-top:8px;"><strong>Against:</strong> Sample size remains small. Vermont site took 3 years to profitability. Evidence gap on internet radio specifically persists. <span class="confidence medium">medium</span></p>
+              </div>
+            </div>
+            <!-- Decision log -->
+            <div class="msg">
+              <div class="decision-log">
+                <div class="dl-header">📋 Decision Logged</div>
+                <div class="dl-body">Proceeding with local ad revenue as primary monetization hypothesis.</div>
+                <div class="dl-against">⚠ Decision made with acknowledged evidence gap — local-market transferability data is limited.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Input -->
+        <div class="input-area">
+          <div class="input-wrap">
+            <textarea class="input-box" rows="1" placeholder="Ask a question or raise a topic..."></textarea>
+            <button class="send-btn">Send</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Status bar bottom -->
+    <div class="status-bar bottom">
+      <button class="sidebar-toggle" onclick="document.getElementById('sidebar-b').style.display=document.getElementById('sidebar-b').style.display==='none'?'flex':'none'" style="font-size:13px;" title="Toggle wiki">☰</button>
+      <span class="status-project">radio-app</span>
+      <span>|</span>
+      <span>Context:</span>
+      <div class="health-gauge"><div class="health-fill"></div></div>
+      <span class="health-label" style="color:#eab308;">65%</span>
+      <span class="status-cost">Session: ~$0.42</span>
+    </div>
+  </div>
+  <!-- Toast -->
+  <div class="toast">
+    <span class="toast-icon">✓</span> Checkpoint saved — competitive analysis
+  </div>
+</div>
+
+<!-- ==================== DIRECTION C ==================== -->
+<div class="mockup" id="mockup-2">
+  <div style="position:absolute;top:0;left:0;right:0;display:flex;flex-direction:column;height:100%;">
+    <div style="flex:1;display:flex;overflow:hidden;">
+      <!-- Chat only, no sidebar -->
+      <div class="chat-area">
+        <div class="chat-stream">
+          <div class="chat-content">
+            <!-- User message -->
+            <div class="msg">
+              <div class="msg-user">
+                <div class="msg-label">You</div>
+                I want to understand who else is doing local internet radio and how they're monetizing.
+              </div>
+            </div>
+            <!-- Tool calls -->
+            <div class="msg">
+              <div class="tool-call">
+                <div class="tool-header" onclick="toggleTool(this)">
+                  <span class="tool-chevron">▶</span>
+                  <span>Searching Tavily: "local internet radio stations monetization models 2025"</span>
+                </div>
+                <div class="tool-detail">
+                  Query: "local internet radio stations monetization models 2025"<br>
+                  Results: 12 sources found<br>
+                  Relevant: 7 sources matched criteria<br>
+                  Time: 4.2s
+                </div>
+              </div>
+              <div class="tool-call">
+                <div class="tool-header" onclick="toggleTool(this)">
+                  <span class="tool-chevron">▶</span>
+                  <span>Storing findings → Pinecone (radio-app/competitive-landscape)</span>
+                </div>
+                <div class="tool-detail">
+                  Namespace: radio-app<br>
+                  Vectors stored: 7<br>
+                  Status: ✓ confirmed
+                </div>
+              </div>
+            </div>
+            <!-- Agent response -->
+            <div class="msg">
+              <div class="msg-agent">
+                <div class="msg-label">Agent</div>
+                <p>I found seven competitors across three monetization models:</p>
+                <p style="margin-top:8px;"><strong>1. Local ad-supported</strong> (3 stations): WFMU <a class="citation" title="Source: Current.org — industry analysis">1</a>, BFF.fm <a class="citation" title="Source: BFF.fm annual report 2024">2</a>, and RadioFreeNashville <a class="citation" title="Source: Nashville Scene interview">3</a>. Revenue data limited — BFF.fm publishes $180K/year. <span class="confidence medium">medium confidence</span></p>
+                <p style="margin-top:8px;"><strong>2. Listener-supported</strong> (2 stations): Public-radio model with pledge drives and Patreon. <a class="citation" title="Source: Patreon public pages">4</a> <a class="citation" title="Source: Station websites">5</a> <span class="confidence high">high confidence</span></p>
+                <p style="margin-top:8px;"><strong>3. Hybrid</strong> (2 stations): Local ads + donations + events. <a class="citation" title="Source: IndieHackers">6</a> <a class="citation" title="Source: Local news">7</a> <span class="confidence low">low confidence</span></p>
+              </div>
+            </div>
+            <!-- Skeptic (icon + badge style) -->
+            <div class="msg">
+              <div class="skeptic-icon">
+                <div class="msg-label">Skeptic <span class="skeptic-badge">CHALLENGE</span></div>
+                <p>Three of these competitors launched in markets 10x larger than your target. The monetization data may not transfer to a local market. The sample size for local-only stations is small — only two examples, both with unclear revenue data.</p>
+                <p style="margin-top:8px;">BFF.fm operates in San Francisco (population 870K). Your target is under 100K. Per-capita ad spend doesn't scale linearly. <a class="citation" title="Source: Census.gov">8</a></p>
+              </div>
+            </div>
+            <!-- User reply -->
+            <div class="msg">
+              <div class="msg-user">
+                <div class="msg-label">You</div>
+                Local advertising is fundamentally different — national comparisons don't apply.
+              </div>
+            </div>
+            <!-- Steelmanning -->
+            <div class="msg">
+              <div class="msg-agent">
+                <div class="msg-label">Agent — Steelmanning your position</div>
+                <p><strong>For:</strong> Vermont hyperlocal news (pop. 45K) → $120K/year local ads <a class="citation" title="Source: Nieman Lab 2024">9</a>. Oregon community radio → 40 local advertisers <a class="citation" title="Source: OPB feature">10</a>. <span class="confidence medium">medium</span></p>
+                <p style="margin-top:8px;"><strong>Against:</strong> Sample size remains small. Vermont took 3 years to profitability. Evidence gap persists. <span class="confidence medium">medium</span></p>
+              </div>
+            </div>
+            <!-- Decision log -->
+            <div class="msg">
+              <div class="decision-log">
+                <div class="dl-header">📋 Decision Logged</div>
+                <div class="dl-body">Proceeding with local ad revenue as primary monetization hypothesis.</div>
+                <div class="dl-against">⚠ Decision made with acknowledged evidence gap.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Input -->
+        <div class="input-area">
+          <div class="input-wrap">
+            <textarea class="input-box" rows="1" placeholder="Ask a question or raise a topic..."></textarea>
+            <button class="send-btn">Send</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Status bar bottom -->
+    <div class="status-bar bottom">
+      <span class="status-project">radio-app</span>
+      <span>|</span>
+      <span>Context:</span>
+      <div class="health-gauge"><div class="health-fill"></div></div>
+      <span class="health-label" style="color:#eab308;">65%</span>
+      <span>|</span>
+      <span>Wiki: 9 articles</span>
+      <span>|</span>
+      <span>Decisions: 3 logged</span>
+      <span class="status-cost">Session: ~$0.42</span>
+    </div>
+  </div>
+</div>
+
+<script>
+  const descriptions = [
+    "Sidebar pushes chat content. Status bar at top. Skeptic: left border accent.",
+    "Sidebar overlays chat (doesn't push). Status bar at bottom. Skeptic: background tint. Toast for confirmations.",
+    "No sidebar — wiki/projects/decisions accessed via status bar or commands. Status bar at bottom with more info. Skeptic: icon + badge."
+  ];
+
+  function show(n) {
+    document.querySelectorAll('.mockup').forEach((m, i) => {
+      m.classList.toggle('active', i === n);
+    });
+    document.querySelectorAll('.nav button').forEach((b, i) => {
+      if (i > 0) return; // skip nav-title
+      b.classList.remove('active');
+    });
+    document.querySelectorAll('.nav button').forEach((b, i) => {
+      b.classList.toggle('active', i === n);
+    });
+    document.getElementById('nav-desc').textContent = descriptions[n];
+  }
+
+  function toggleTool(el) {
+    const chevron = el.querySelector('.tool-chevron');
+    const detail = el.nextElementSibling;
+    if (detail && detail.classList.contains('tool-detail')) {
+      chevron.classList.toggle('open');
+      detail.classList.toggle('open');
+    }
+  }
+</script>
+</body>
+</html>

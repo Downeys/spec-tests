@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/c/Users/downe/spec-tests/test4-superpowers/.worktrees/**)",
+      "Bash(node -e ' *)"
+    ]
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "target": "ES2023",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "forceConsistentCasingInFileNames": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/onebrain/*": ["src/onebrain/*"],
+      "@/lib/*": ["src/lib/*"],
+      "@/cli/*": ["src/cli/*"],
+      "@/compilation/*": ["src/compilation/*"],
+      "@/ui/*": ["src/ui/*"],
+      "@/server/*": ["src/server/*"],
+      "@/agents/*": ["src/agents/*"],
+      "@/eval/*": ["src/eval/*"]
+    }
+  },
+  "exclude": ["node_modules", "dist"]
+}

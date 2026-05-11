@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(docker stop *)",
+      "Bash(docker rm *)",
+      "Bash(docker compose *)",
+      "Bash(npm run *)",
+      "Bash(npm test *)",
+      "Bash(node src/cli/index.ts --help)",
+      "Bash(npm install *)"
+    ]
+  }
+}

@@ -1,0 +1,44 @@
+# oneBrain Composer — local infra.
+# Postgres holds the source-of-truth oneBrain. pgAdmin is a convenience GUI.
+# bin/new-venture writes a docker-compose.override.yml per cloned venture
+# (different container names, different host port) so multiple ventures can
+# coexist without colliding.
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: onebrain-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: onebrain
+      POSTGRES_PASSWORD: onebrain
+      POSTGRES_DB: onebrain
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U onebrain -d onebrain"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  pgadmin:
+    image: dpage/pgadmin4:8
+    container_name: onebrain-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@local
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+    ports:
+      - "5050:80"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+
+volumes:
+  postgres-data:
+  pgadmin-data:

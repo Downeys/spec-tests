@@ -1,0 +1,148 @@
+{
+  "version": "1.1",
+  "phase": "02-agents-and-chat",
+  "created": "2026-04-26",
+  "labeler": "user (founder/operator)",
+  "phase_2_gate": "≥12 of 13 grading slots PASS by user judgment (12 user-labeled scenarios + 1 locked-PASS scenario; scenarios 11+12 are locked-FAIL anti-examples and EXCLUDED)",
+  "phase_4_target": "Promptfoo EVAL-02 ingestion + Claude Opus LLM judge with ≥9/12 agreement on calibration exemplars",
+  "scenarios": [
+    {
+      "id": 1,
+      "name": "Unsourced TAM assertion",
+      "input": { "type": "user_message", "text": "Our TAM is $50B." },
+      "expected_behavior": "Coordinator pushback containing all three template tokens (rule + action + path-forward); claim row written with status=hypothesis, confidence ≤ 0.3, no cites_source edge.",
+      "maps_to_dimensions": [4],
+      "labeled_outcome": null,
+      "gate_relevant": true
+    },
+    {
+      "id": 2,
+      "name": "Sourced quantitative claim",
+      "input": { "type": "user_message", "text": "Per Gartner's 2025 cybersecurity report at https://gartner.com/example, the SIEM market is $7.2B." },
+      "expected_behavior": "Coordinator accepts; research sub-agent (or coordinator directly) writes source row first, claim row with cites_source_ids populated.",
+      "maps_to_dimensions": [2, 6],
+      "labeled_outcome": null,
+      "gate_relevant": true
+    },
+    {
+      "id": 3,
+      "name": "Sub-million unsourced metric",
+      "input": { "type": "user_message", "text": "We have $400K ARR." },
+      "expected_behavior": "Below-noise-floor; accepted as hypothesis at default low confidence; no pushback required.",
+      "maps_to_dimensions": [2],
+      "labeled_outcome": null,
+      "gate_relevant": true
+    },
+    {
+      "id": 4,
+      "name": "Malformed sub-agent JSON (first attempt; recovery on second)",
+      "input": { "type": "test_setup", "description": "Stubbed sub-agent returns {summary: '...', claim_ids_written: null} then valid output on retry." },
+      "expected_behavior": "SDK retries once via outputSchema; second attempt succeeds; coordinator continues normally.",
+      "maps_to_dimensions": [5],
+      "labeled_outcome": null,
+      "gate_relevant": true
+    },
+    {
+      "id": 5,
+      "name": "Persistently malformed sub-agent JSON",
+      "input": { "type": "test_setup", "description": "Stubbed sub-agent returns malformed JSON twice." },
+      "expected_behavior": "SDK retries once; on second failure surfaces structured error to chat naming the failed Zod path.",
+      "maps_to_dimensions": [5],
+      "labeled_outcome": null,
+      "gate_relevant": true
+    },
+    {
+      "id": 6,
+      "name": "Research turn (happy path)",
+      "input": { "type": "user_message", "text": "Research Acme's pricing model." },
+      "expected_behavior": "Sub-agent runs Tavily search + extract; writes ≥1 source row before any claim row referencing it; coordinator chat reply cites live OneBrain claim rows by ID, NOT the sub-agent summary.",
+      "maps_to_dimensions": [3, 6, 7],
+      "labeled_outcome": null,
+      "gate_relevant": true
+    },
+    {
+      "id": 7,
+      "name": "Prose-smuggling provocation",
+      "input": { "type": "test_setup", "description": "Sub-agent returns a summary containing a quotable analytical phrase." },
+      "expected_behavior": "Coordinator reply has < 12-token contiguous overlap with sub-agent summary; cites claim rows by ULID.",
+      "maps_to_dimensions": [3],
+      "labeled_outcome": null,
+      "gate_relevant": true
+    },
+    {
+      "id": 8,
+      "name": "Recompile after research turn",
+      "input": { "type": "test_setup", "description": "After scenario 6 completes, user clicks Recompile." },
+      "expected_behavior": "Compilation sub-agent invoked; vault_write_atomic succeeds; source_claim_ids ⊇ new claim ULIDs; D-18 system message in chat.",
+      "maps_to_dimensions": [7, 1],
+      "labeled_outcome": null,
+      "gate_relevant": true
+    },
+    {
+      "id": 9,
+      "name": "Wrong-agent vault write attempt (research)",
+      "input": { "type": "test_setup", "description": "Test harness invokes vault_write_atomic from research-agent context." },
+      "expected_behavior": "Tool-permission layer rejects with ToolPermissionDenied; vault filesystem byte-identical.",
+      "maps_to_dimensions": [1],
+      "labeled_outcome": null,
+      "gate_relevant": true
+    },
+    {
+      "id": 10,
+      "name": "Wrong-agent vault write attempt (coordinator)",
+      "input": { "type": "test_setup", "description": "Test harness invokes vault_write_atomic from coordinator-agent context." },
+      "expected_behavior": "Rejected; vault unmodified.",
+      "maps_to_dimensions": [1],
+      "labeled_outcome": null,
+      "gate_relevant": true
+    },
+    {
+      "id": 11,
+      "name": "Pushback theater anti-example",
+      "input": { "type": "hand_crafted_output", "text": "Be careful with that number, we should validate this." },
+      "expected_behavior": "LLM judge labels FAIL — no rule named, no action named, no path forward.",
+      "maps_to_dimensions": [4],
+      "labeled_outcome": "FAIL",
+      "calibration_role": "negative_anchor",
+      "gate_relevant": false
+    },
+    {
+      "id": 12,
+      "name": "Hard-veto anti-example",
+      "input": { "type": "hand_crafted_output", "text": "I can't accept that claim." },
+      "expected_behavior": "LLM judge labels FAIL — refusal without action; user's intent not captured as hypothesis.",
+      "maps_to_dimensions": [4],
+      "labeled_outcome": "FAIL",
+      "calibration_role": "negative_anchor",
+      "gate_relevant": false
+    },
+    {
+      "id": 13,
+      "name": "Good pushback exemplar",
+      "input": { "type": "hand_crafted_output", "text": "That claim is TAM-shaped or ≥$1M and has no source attached. I haven't logged it yet — give me a source, or want me to research it?" },
+      "expected_behavior": "LLM judge labels PASS — all three template criteria present.",
+      "maps_to_dimensions": [4],
+      "labeled_outcome": "PASS",
+      "calibration_role": "positive_anchor",
+      "gate_relevant": true
+    },
+    {
+      "id": 14,
+      "name": "Hypothesis framing in chat",
+      "input": { "type": "user_message", "text": "I think $99/mo is the right price point." },
+      "expected_behavior": "Coordinator frames as hypothesis with claim ID + confidence inline per D-09; does NOT assert as fact.",
+      "maps_to_dimensions": [4],
+      "labeled_outcome": null,
+      "gate_relevant": true
+    },
+    {
+      "id": 15,
+      "name": "Forward-reference source ordering violation",
+      "input": { "type": "test_setup", "description": "Stubbed agent calls onebrain_write_claim(cites_source_ids=[non-existent ULID]) before writing the source." },
+      "expected_behavior": "Tool wrapper rejects with SourceRowNotFoundError naming the missing source ULID.",
+      "maps_to_dimensions": [6],
+      "labeled_outcome": null,
+      "gate_relevant": true
+    }
+  ]
+}

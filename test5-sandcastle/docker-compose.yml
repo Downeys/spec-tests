@@ -1,0 +1,20 @@
+services:
+  openbrain:
+    image: pgvector/pgvector:pg16
+    container_name: openbrain
+    environment:
+      POSTGRES_USER: openbrain_admin
+      POSTGRES_PASSWORD: openbrain_admin
+      POSTGRES_DB: openbrain
+    ports:
+      - '127.0.0.1:5432:5432'
+    volumes:
+      - openbrain-pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U openbrain_admin -d openbrain']
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+volumes:
+  openbrain-pg-data:

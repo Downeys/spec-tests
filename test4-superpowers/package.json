@@ -1,0 +1,21 @@
+{
+  "name": "business-plan-builder",
+  "private": true,
+  "version": "0.0.0",
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "cli": "pnpm --filter backend cli",
+    "test": "pnpm --filter backend test",
+    "test:watch": "pnpm --filter backend test:watch",
+    "typecheck": "pnpm --filter backend typecheck",
+    "migrate": "pnpm --filter backend migrate",
+    "test:e2e": "playwright test --config tests/e2e/playwright.config.ts"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.59.1",
+    "typescript": "^5.5.0"
+  }
+}

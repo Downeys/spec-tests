@@ -1,0 +1,10 @@
+# CI=true tells pnpm not to prompt before purging node_modules when the
+# lockfile has drifted (typical after a slice merge pulls main). Without
+# this, the hook fails with ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY
+# every time main is pulled with new deps.
+export CI=true
+
+npx pnpm typecheck
+npx pnpm exec lint-staged
+npx pnpm exec vitest related --run $(git diff --cached --name-only --diff-filter=ACMR -- '*.ts' '*.tsx' 2>/dev/null) 2>/dev/null || true
+npx pnpm exec vitest run --project domain --coverage --coverage.include='packages/domain/**/*.ts' --coverage.exclude='**/*.test.ts' --coverage.exclude='**/index.ts' --coverage.thresholds.lines=90 --coverage.thresholds.branches=90

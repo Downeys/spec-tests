@@ -1,0 +1,14 @@
+{
+  "name": "@bp-agent/external",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "dependencies": {
+    "@bp-agent/application": "workspace:*",
+    "@bp-agent/domain": "workspace:*",
+    "zod": "^4.4.3"
+  }
+}

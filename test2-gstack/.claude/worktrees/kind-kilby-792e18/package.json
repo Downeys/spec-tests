@@ -1,0 +1,46 @@
+{
+  "name": "onebrain-composer",
+  "version": "0.1.0",
+  "description": "oneBrain Composer — investor-grade venture planning agent (MCP server + Postgres + wiki compiler).",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20.10.0"
+  },
+  "packageManager": "pnpm@9.0.0",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "start": "node dist/server.js",
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint src tests bin",
+    "backup-db": "tsx bin/backup-db.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "smoke": "tsx tests/smoke/run-smoke.ts",
+    "migrate:up": "node-pg-migrate up --migrations-dir migrations --envPath .env",
+    "migrate:down": "node-pg-migrate down --migrations-dir migrations --envPath .env",
+    "migrate:create": "node-pg-migrate create --migrations-dir migrations -j sql"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.30.0",
+    "@modelcontextprotocol/sdk": "^1.18.0",
+    "@tavily/core": "^0.3.0",
+    "dotenv": "^16.4.5",
+    "node-pg-migrate": "^7.9.1",
+    "pg": "^8.13.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@types/pg": "^8.11.0",
+    "@typescript-eslint/eslint-plugin": "^8.18.0",
+    "@typescript-eslint/parser": "^8.18.0",
+    "eslint": "^9.17.0",
+    "testcontainers": "^10.13.0",
+    "@testcontainers/postgresql": "^10.13.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0",
+    "vitest": "^2.1.0"
+  }
+}

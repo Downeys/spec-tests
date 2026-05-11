@@ -1,0 +1,49 @@
+---
+status: accepted
+---
+
+# `Source.trustScore` is nullable end-to-end; `null` means "unrated by the user"
+
+`Source.trustScore` is a **nullable** numeric meta-assessment in `[0, 1]`. **`null` is a first-class value meaning "the user has not assessed this Source yet."** It is structurally distinct from any rated value, including `0.5`. The schema, the domain aggregate, and the wiki rendering all preserve the null/rated distinction; no layer silently defaults `null` to a number.
+
+Vocabulary in [CONTEXT.md](../../CONTEXT.md). Two-tier ingestion in [ADR-0008](0008-source-ingestion-two-tier.md). Decomposed confidence display in [ADR-0018](0018-confidence-decomposed-display-no-stored-scalar.md). Append-only re-rating mechanics in [ADR-0024](0024-two-role-postgres-model.md).
+
+## Why this question is forced
+
+The **Researcher** sub-agent captures **candidate Sources** from `web_search` results before the user has seen them ([ADR-0026](0026-anthropic-web-search-supersedes-tavily.md)). [CONTEXT.md](../../CONTEXT.md) defines `trustScore` as "the **user's** meta-assessment of the source itself — peer-reviewed paper > Twitter thread" — two words load-bearing: **user's**. Not the agent's. So at Researcher-capture time, no rating exists. PRD-5 owns auto-promotion of `candidate → full` on first Citation write, which means the promotion transaction must produce a `full` row — and that row's `trust_score` has to be something.
+
+## Considered Options
+
+- **A — Null carries through end-to-end (chosen).** Candidates and full rows both allow `trust_score IS NULL`. Researcher captures with `null`. Auto-promotion preserves `null`. Wiki and HTTP responses render "unrated" distinctly from any rated value. A future user-rate operation flips `null → <value>` via the append-only `previousVersionId` chain.
+- **B — Auto-default to `0.5` at promotion time.** Candidates allow `null`; promotion defaults `null → 0.5` so the `full` row has a number. Rejected: lossy. After promotion no read can tell whether the user rated `0.5` or whether the system defaulted `0.5`. The wiki's epistemic clarity is silently compromised — every Citation looks "moderately trustworthy" regardless of whether anyone has assessed the Source.
+- **C — Researcher passes a URL-host heuristic.** Tool computes `trust_score` from host (`.gov`/`.edu` = 0.85, established news = 0.65, blog = 0.4, social = 0.2). Rejected: gives the agent a partial license to opine on trust that [CONTEXT.md](../../CONTEXT.md)'s definition explicitly denies, and the heuristic table is constantly wrong on the cases that matter (a Fortune-500 CFO's Medium post vs a content-marketing blog at the same domain).
+- **D — Researcher passes a fixed `0.5`.** Same lossiness as B but earlier in the pipeline. Worst of the four: the value masquerades as a rating, isn't, and can't be distinguished from one.
+
+## Why A
+
+- **The principle "trustScore is the user's meta-assessment" is load-bearing.** [ADR-0018](0018-confidence-decomposed-display-no-stored-scalar.md) commits the wiki to displaying `confidence × Source.trustScore` decomposed beside the Hypothesis status. If `trustScore` is silently defaulted to a number, the wiki lies about what the user has assessed. Null is the honest signal.
+- **Distinction between "rated 0.5" and "unrated" carries operational weight.** A user scanning Citations needs to see which Sources still need their attention. Without that distinction, "review unrated Sources" becomes impossible to express in either UI or queries.
+- **Append-only re-rating composes cleanly.** A user-rate operation creates a new Source row with the same fields, `trustScore` flipped to a rated value, and `previousVersionId` pointing at the unrated row. Same chain shape as metadata-correction inserts already documented in [ADR-0024](0024-two-role-postgres-model.md). Re-rating in the other direction (rated → unrated) is symmetric and equally lossless.
+- **Frictionless capture path.** The Researcher does not block waiting for a user rating, which is essential because PRD-5 ships no Coordinator-as-LLM — there is no conversational round-trip to elicit a rating mid-research. Audit grade isn't compromised; meta-assessment is deferred but recoverable.
+- **The constraint relaxation is small.** The PRD-4 schema's `full`-row CHECK is one clause; relaxing it to `trust_score IS NULL OR (trust_score >= 0 AND trust_score <= 1)` is one line. The PRD-4 domain `captureFull` and `promoteToFull` constructors make `trust_score` optional. No data migration is needed because PRD-4 has not yet shipped.
+
+## Where the line is
+
+| Surface                                                                                                                                          | Behaviour under null `trustScore`                                                                                                                                                               |
+| ------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `sources` schema                                                                                                                                 | `trust_score NUMERIC(3,2) NULL`; CHECK is `trust_score IS NULL OR (trust_score >= 0 AND trust_score <= 1)` — applies to both `candidate` and `full` rows.                                       |
+| `Source` aggregate (`captureCandidate`, `captureFull`, `promoteToFull`)                                                                          | `trustScore` is `TrustScore \| null`. Constructors accept either.                                                                                                                               |
+| `record_claim` (PRD-5 Researcher tool)                                                                                                           | Citation insert succeeds regardless of `trustScore` on cited Sources; the result payload includes a `warnings: ["cited N unrated Sources"]` field when applicable. Informational, not blocking. |
+| Auto-promotion (PRD-5)                                                                                                                           | Carries `trustScore` from the candidate row to the new `full` row unchanged. Never synthesises a value.                                                                                         |
+| `GET /api/sources/:id`                                                                                                                           | Returns `"trustScore": null` literally. Clients render "unrated" distinctly.                                                                                                                    |
+| Wiki Source page and per-Citation `confidence × Source.trustScore` display ([ADR-0018](0018-confidence-decomposed-display-no-stored-scalar.md))  | Renders `unrated` in place of the product. Sort-key formulas treat `null` as "lowest" or omit, per renderer policy (formula remains deferred).                                                  |
+| Future `trustScore ≥ 0.7` query filters (e.g. the example in [ADR-0019](0019-per-slot-research-prompts-deferred-registry-stays-runtime-free.md)) | Unrated Sources do not satisfy `≥ 0.7`. SQL three-valued logic falls out correctly.                                                                                                             |
+| User-rate operation                                                                                                                              | Deferred to a follow-up PRD. Shape: `POST /api/sources/:id/rate-trust { trustScore: number                                                                                                      | null }`produces a new Source row with`previousVersionId` pointing at the rated-from row. |
+
+## Consequences
+
+- **PRD-4 is amended.** Schema CHECK on `full` rows becomes nullable-permissive. `Source.captureFull` and `Source.promoteToFull` make `trustScore` optional. `Source.captureCandidate` drops its `trustScore` required-parameter (already null-permissive at the schema level; the domain matches). Property tests cover the unrated round-trip on every surface. PRD-4 is open and `needs-triage` at the time of writing; amendments land in the open issues, not as a follow-up.
+- **PRD-5 acceptance criteria locked.** The `capture_candidate_source` Researcher tool does not accept a `trustScore` parameter. The `record_claim` tool surfaces an informational warning when cited Sources are unrated. Auto-promotion preserves the null.
+- **User-rate operation is the most important post-PRD-5 follow-up on the Source side.** Without it, the user has no way to flip `null → <value>`, and every Researcher-captured Source remains unrated indefinitely. This atrophies the wiki's trust signals. Queued as a Sandcastle issue at PRD-5 triage time.
+- **No mechanical enforcement of "the agent never assigns trustScore."** Achieved structurally: the tool's parameter list does not include `trustScore`. A future Researcher prompt that tried to set it would have no surface to do so. Equivalent to ADR-0007's "LLM never computes derived figures" approach — defended by tool-shape, not by post-hoc lint.
+- **Reversibility.** Tightening the constraint later (forcing `trustScore` non-null again) requires either a back-fill or an unrated-source migration. Loosening from the current state would be cheap. The asymmetry favours starting permissive; consistent with PRD-5's frictionless-capture priority.

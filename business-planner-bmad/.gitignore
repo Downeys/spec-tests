@@ -1,0 +1,16 @@
+node_modules/
+dist/
+.env
+.env.local
+data/
+!data/.gitkeep
+wiki/.obsidian/
+*.log
+.DS_Store
+apps/web/dist/
+apps/server/dist/
+coverage/
+.turbo/
+.vite/
+.vitest-cache/
+*.tsbuildinfo

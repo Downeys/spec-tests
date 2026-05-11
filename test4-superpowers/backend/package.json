@@ -1,0 +1,38 @@
+{
+  "name": "backend",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "cli": "tsx src/cli/index.ts",
+    "compile": "tsx src/cli/index.ts compile",
+    "lint:vault": "tsx src/cli/index.ts lint",
+    "migrate": "node-pg-migrate -m ../migrations -j ts -t pgmigrations"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.92.0",
+    "@fastify/cors": "^11.2.0",
+    "cac": "^6.7.0",
+    "dotenv": "^16.4.0",
+    "fastify": "^5.8.5",
+    "node-pg-migrate": "^7.6.0",
+    "pg": "^8.13.0",
+    "voyageai": "^0.2.1",
+    "yaml": "^2.5.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@types/pg": "^8.11.0",
+    "@vitest/coverage-v8": "^2.1.0",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.19.0",
+    "typescript": "^5.5.0",
+    "vitest": "^2.1.0"
+  }
+}

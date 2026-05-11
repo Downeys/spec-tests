@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node .claude/get-shit-done/bin/gsd-tools.cjs commit \"docs: add karpathy + nate b jones inputs and refine memory architecture context\" .planning/PROJECT.md .planning/inputs/karpathy-llm-wiki-gist.md .planning/inputs/nate-b-jones-hybrid-transcript.md)",
+      "Bash(node .claude/get-shit-done/bin/gsd-tools.cjs agent-skills gsd-project-researcher)",
+      "WebSearch",
+      "WebFetch(domain:www.npmjs.com)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:www.anthropic.com)",
+      "WebFetch(domain:docs.voyageai.com)",
+      "Bash(npx --version)",
+      "Bash(npm --version)",
+      "Bash(xargs grep *)",
+      "Bash(DATABASE_URL=postgres://bsp:changeme-local-dev-only@localhost:5432/businessplanner node check_topics_temp.mjs)",
+      "Bash(rm check_topics_temp.mjs)",
+      "Bash(node -e ' *)",
+      "Bash(DATABASE_URL=postgres://bsp:changeme-local-dev-only@localhost:5432/businessplanner node check_state_temp.mjs)",
+      "Bash(rm check_state_temp.mjs)",
+      "Bash(DATABASE_URL=postgres://bsp:changeme-local-dev-only@localhost:5432/businessplanner npm run bsp -- ingest --fixture strategic-positioning --json)"
+    ]
+  }
+}

@@ -1,0 +1,676 @@
+diff --git a/package.json b/package.json
+new file mode 100644
+index 0000000..acb3dc5
+--- /dev/null
++++ b/package.json
+@@ -0,0 +1,41 @@
++{
++  "name": "business-planner",
++  "version": "0.1.0",
++  "private": true,
++  "type": "module",
++  "packageManager": "pnpm@10.33.0",
++  "engines": {
++    "node": ">=22.0.0",
++    "pnpm": ">=10.0.0"
++  },
++  "scripts": {
++    "dev": "pnpm -r --parallel run dev",
++    "build": "pnpm -r run build",
++    "typecheck": "pnpm -r run typecheck",
++    "lint": "pnpm -r run lint",
++    "test": "pnpm -r run test",
++    "start": "pnpm --filter @bp/server start",
++    "prepare": "husky"
++  },
++  "lint-staged": {
++    "*.{ts,tsx}": ["eslint --max-warnings 0", "prettier --write"],
++    "*.{json,md,yml,yaml}": ["prettier --write"]
++  },
++  "devDependencies": {
++    "@typescript-eslint/eslint-plugin": "^8.20.0",
++    "@typescript-eslint/parser": "^8.20.0",
++    "eslint": "^9.17.0",
++    "eslint-config-prettier": "^9.1.0",
++    "eslint-plugin-react-hooks": "^5.1.0",
++    "eslint-plugin-react-refresh": "^0.4.16",
++    "husky": "^9.1.7",
++    "lint-staged": "^15.3.0",
++    "prettier": "^3.4.2",
++    "typescript": "^5.7.3",
++    "typescript-eslint": "^8.20.0",
++    "vitest": "^2.1.8"
++  },
++  "pnpm": {
++    "onlyBuiltDependencies": ["esbuild"]
++  }
++}
+diff --git a/pnpm-workspace.yaml b/pnpm-workspace.yaml
+new file mode 100644
+index 0000000..e9b0dad
+--- /dev/null
++++ b/pnpm-workspace.yaml
+@@ -0,0 +1,3 @@
++packages:
++  - 'apps/*'
++  - 'packages/*'
+diff --git a/tsconfig.base.json b/tsconfig.base.json
+new file mode 100644
+index 0000000..29c5710
+--- /dev/null
++++ b/tsconfig.base.json
+@@ -0,0 +1,14 @@
++{
++  "compilerOptions": {
++    "strict": true,
++    "noUncheckedIndexedAccess": true,
++    "target": "ES2022",
++    "module": "ESNext",
++    "moduleResolution": "Bundler",
++    "esModuleInterop": true,
++    "skipLibCheck": true,
++    "forceConsistentCasingInFileNames": true,
++    "isolatedModules": true,
++    "resolveJsonModule": true
++  }
++}
+diff --git a/eslint.config.js b/eslint.config.js
+new file mode 100644
+index 0000000..007014e
+--- /dev/null
++++ b/eslint.config.js
+@@ -0,0 +1,83 @@
++import tseslint from 'typescript-eslint';
++import reactHooks from 'eslint-plugin-react-hooks';
++import reactRefresh from 'eslint-plugin-react-refresh';
++import prettier from 'eslint-config-prettier';
++
++export default tseslint.config(
++  {
++    ignores: [
++      '**/dist/**',
++      '**/node_modules/**',
++      '**/coverage/**',
++      '**/.turbo/**',
++      '**/.vite/**',
++      '_bmad/**',
++      '_bmad-output/**',
++      '**/*.config.{js,mjs,cjs,ts}',
++      '.husky/**',
++    ],
++  },
++
++  ...tseslint.configs.recommendedTypeChecked,
++  ...tseslint.configs.strictTypeChecked,
++
++  {
++    languageOptions: {
++      parserOptions: {
++        projectService: true,
++        tsconfigRootDir: import.meta.dirname,
++      },
++    },
++    rules: {
++      '@typescript-eslint/no-unused-vars': [
++        'error',
++        { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
++      ],
++    },
++  },
++
++  {
++    files: ['apps/web/**/*.{ts,tsx}'],
++    plugins: {
++      'react-hooks': reactHooks,
++      'react-refresh': reactRefresh,
++    },
++    rules: {
++      ...reactHooks.configs.recommended.rules,
++      'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
++    },
++  },
++
++  {
++    files: ['apps/server/src/**/*.ts'],
++    rules: {
++      'no-restricted-syntax': [
++        'error',
++        {
++          selector:
++            "CallExpression[callee.object.name='res'][callee.property.name='write'] > CallExpression[callee.object.name='JSON'][callee.property.name='stringify']",
++          message:
++            'Do not write raw JSON to SSE responses. Use the typed event emitter from packages/shared (Story 1.6).',
++        },
++        {
++          selector: "ThrowStatement > NewExpression[callee.name='Error']",
++          message:
++            'Do not throw plain Error in server code. Use the typed AppError hierarchy from packages/shared/errors (Story 1.2 / 1.3).',
++        },
++      ],
++    },
++  },
++
++  {
++    files: ['**/*.test.{ts,tsx}', '**/*.spec.{ts,tsx}', 'apps/server/tests/**/*.ts'],
++    rules: {
++      'no-restricted-syntax': 'off',
++      '@typescript-eslint/no-non-null-assertion': 'off',
++      '@typescript-eslint/no-unsafe-assignment': 'off',
++      '@typescript-eslint/no-unsafe-member-access': 'off',
++      '@typescript-eslint/no-unsafe-call': 'off',
++    },
++  },
++
++  prettier,
++);
+diff --git a/.eslintrc.cjs b/.eslintrc.cjs
+new file mode 100644
+index 0000000..84009e1
+--- /dev/null
++++ b/.eslintrc.cjs
+@@ -0,0 +1,16 @@
++// IDE-compatibility shim. ESLint 9 reads `eslint.config.js` (flat config) and
++// ignores this file. Older IDE plugins that have not migrated to flat config
++// fall back to this file so they can still highlight rules in-editor.
++//
++// Keep this minimal — it is intentionally a subset of `eslint.config.js`.
++module.exports = {
++  root: true,
++  parser: '@typescript-eslint/parser',
++  parserOptions: {
++    ecmaVersion: 2022,
++    sourceType: 'module',
++  },
++  plugins: ['@typescript-eslint'],
++  extends: ['eslint:recommended', 'plugin:@typescript-eslint/recommended', 'prettier'],
++  ignorePatterns: ['dist', 'node_modules', 'coverage', '.turbo', '_bmad', '_bmad-output'],
++};
+diff --git a/.prettierrc b/.prettierrc
+new file mode 100644
+index 0000000..0ce2128
+--- /dev/null
++++ b/.prettierrc
+@@ -0,0 +1,7 @@
++{
++  "singleQuote": true,
++  "semi": true,
++  "trailingComma": "all",
++  "printWidth": 100,
++  "tabWidth": 2
++}
+diff --git a/.editorconfig b/.editorconfig
+new file mode 100644
+index 0000000..8c52ff9
+--- /dev/null
++++ b/.editorconfig
+@@ -0,0 +1,12 @@
++root = true
++
++[*]
++charset = utf-8
++end_of_line = lf
++indent_style = space
++indent_size = 2
++insert_final_newline = true
++trim_trailing_whitespace = true
++
++[*.md]
++trim_trailing_whitespace = false
+diff --git a/.gitignore b/.gitignore
+new file mode 100644
+index 0000000..d25c4cd
+--- /dev/null
++++ b/.gitignore
+@@ -0,0 +1,15 @@
++node_modules/
++dist/
++.env
++.env.local
++data/
++!data/.gitkeep
++wiki/.obsidian/
++*.log
++.DS_Store
++apps/web/dist/
++apps/server/dist/
++coverage/
++.turbo/
++.vite/
++.vitest-cache/
+diff --git a/.env.example b/.env.example
+new file mode 100644
+index 0000000..45d08ea
+--- /dev/null
++++ b/.env.example
+@@ -0,0 +1,10 @@
++ANTHROPIC_API_KEY=                              # Anthropic API key for the Claude Agent SDK orchestrator (Story 1.7+)
++TAVILY_API_KEY=                                 # Tavily web-research API key (Epic 2 — Story 2.3)
++PINECONE_API_KEY=                               # Pinecone vector DB API key (Epic 2 — Story 2.1)
++PINECONE_INDEX=business-planner-intelligence    # Pinecone index name; one index, namespaced per project
++VOYAGE_API_KEY=                                 # Voyage embeddings API key (Epic 2 — Story 2.1)
++DATABASE_URL=postgres://bp:bp@localhost:5432/businessplanner  # Postgres URL — Phase 2 placeholder, unused in Phase 1
++DATA_ROOT=./data                                # Local filesystem root for sessions, costs, logs (architecture §Data layout)
++PORT=3000                                       # Fastify server port (binds 127.0.0.1 only)
++WEB_PORT=5173                                   # Vite dev server port
++NODE_ENV=development                            # Node environment: development | production | test
+diff --git a/README.md b/README.md
+new file mode 100644
+index 0000000..a10fc42
+--- /dev/null
++++ b/README.md
+@@ -0,0 +1,62 @@
++# Business Planner
++
++A single-user, local-first business planning workbench built around the Claude Agent SDK, with research/citations (Tavily + Pinecone + Voyage), a Skeptic sub-agent, an Obsidian-compatible wiki, and SSE-driven UI.
++
++## Prerequisites
++
++- **Node 22 LTS** (`node --version` ≥ 22.0.0)
++- **pnpm 10.x** (install via Corepack: `corepack enable && corepack prepare pnpm@latest --activate`)
++- **Docker** — only required from Phase 2 onward (Postgres in compose)
++
++## One-time setup
++
++```bash
++pnpm install
++cp .env.example .env
++# Then fill in the API keys in .env
++```
++
++## Dev loop
++
++Boot both apps in parallel:
++
++```bash
++pnpm dev
++```
++
++Or run each individually in separate terminals:
++
++```bash
++pnpm --filter @bp/web dev      # Vite on http://localhost:5173
++pnpm --filter @bp/server dev   # Fastify on http://127.0.0.1:3000
++```
++
++The Vite dev server proxies `/api/*` to the Fastify server, so the web app calls `/api/health` and the request transparently lands on the backend.
++
++## Quality commands
++
++```bash
++pnpm typecheck   # tsc --noEmit across all workspaces
++pnpm lint        # ESLint, zero warnings tolerated
++pnpm test        # Vitest across all workspaces
++pnpm build       # Production build
++```
++
++A pre-commit hook (husky + lint-staged) runs ESLint + Prettier on staged `.ts`/`.tsx` files before each commit.
++
++## Workspace layout
++
++```
++apps/
++  web/         # @bp/web    — Vite + React 19 + TS strict frontend
++  server/      # @bp/server — Fastify 5 backend (binds 127.0.0.1 only)
++packages/
++  shared/      # @bp/shared — Wire-shape types (events, errors, domain) shared by both apps
++wiki/          # Obsidian-compatible knowledge base (populated in Epic 4)
++docker/        # Phase 2 compose files
++data/          # Local persistence (costs, sessions, logs) — gitignored
++```
++
++## Architecture & planning
++
++See `_bmad-output/planning-artifacts/architecture.md`, `prd.md`, and `epics.md` for the full design and story map.
+diff --git a/apps/web/package.json b/apps/web/package.json
+new file mode 100644
+index 0000000..8481728
+--- /dev/null
++++ b/apps/web/package.json
+@@ -0,0 +1,29 @@
++{
++  "name": "@bp/web",
++  "version": "0.1.0",
++  "private": true,
++  "type": "module",
++  "scripts": {
++    "dev": "vite",
++    "build": "tsc -b && vite build",
++    "typecheck": "tsc --noEmit",
++    "lint": "eslint . --max-warnings 0",
++    "test": "vitest run",
++    "preview": "vite preview"
++  },
++  "dependencies": {
++    "@bp/shared": "workspace:*",
++    "react": "^19.0.0",
++    "react-dom": "^19.0.0"
++  },
++  "devDependencies": {
++    "@testing-library/jest-dom": "^6.6.3",
++    "@testing-library/react": "^16.1.0",
++    "@types/react": "^19.0.0",
++    "@types/react-dom": "^19.0.0",
++    "@vitejs/plugin-react": "^4.3.4",
++    "jsdom": "^25.0.1",
++    "vite": "^6.0.7",
++    "vitest": "^2.1.8"
++  }
++}
+diff --git a/apps/web/tsconfig.json b/apps/web/tsconfig.json
+new file mode 100644
+index 0000000..dc3d93e
+--- /dev/null
++++ b/apps/web/tsconfig.json
+@@ -0,0 +1,12 @@
++{
++  "extends": "../../tsconfig.base.json",
++  "compilerOptions": {
++    "lib": ["ES2022", "DOM", "DOM.Iterable"],
++    "jsx": "react-jsx",
++    "types": ["vite/client", "vitest/globals", "@testing-library/jest-dom"],
++    "noEmit": true,
++    "useDefineForClassFields": true,
++    "allowImportingTsExtensions": false
++  },
++  "include": ["src"]
++}
+diff --git a/apps/web/vite.config.ts b/apps/web/vite.config.ts
+new file mode 100644
+index 0000000..fd04535
+--- /dev/null
++++ b/apps/web/vite.config.ts
+@@ -0,0 +1,33 @@
++/// <reference types="vitest/config" />
++import { defineConfig, loadEnv } from 'vite';
++import react from '@vitejs/plugin-react';
++
++export default defineConfig(({ mode }) => {
++  const env = loadEnv(mode, process.cwd(), '');
++  const webPort = Number(env.WEB_PORT ?? 5173);
++  const apiPort = Number(env.PORT ?? 3000);
++
++  return {
++    plugins: [react()],
++    server: {
++      host: '127.0.0.1',
++      port: webPort,
++      strictPort: false,
++      proxy: {
++        '/api': {
++          target: `http://127.0.0.1:${apiPort}`,
++          changeOrigin: false,
++          ws: false,
++          // SSE must pass through unaltered — do not buffer
++          selfHandleResponse: false,
++        },
++      },
++    },
++    test: {
++      environment: 'jsdom',
++      globals: true,
++      setupFiles: ['./src/vitest.setup.ts'],
++      include: ['src/**/*.{test,spec}.{ts,tsx}'],
++    },
++  };
++});
+diff --git a/apps/web/index.html b/apps/web/index.html
+new file mode 100644
+index 0000000..7de3e15
+--- /dev/null
++++ b/apps/web/index.html
+@@ -0,0 +1,12 @@
++<!doctype html>
++<html lang="en">
++  <head>
++    <meta charset="UTF-8" />
++    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
++    <title>Business Planner</title>
++  </head>
++  <body>
++    <div id="root"></div>
++    <script type="module" src="/src/main.tsx"></script>
++  </body>
++</html>
+diff --git a/apps/web/src/main.tsx b/apps/web/src/main.tsx
+new file mode 100644
+index 0000000..6abe69d
+--- /dev/null
++++ b/apps/web/src/main.tsx
+@@ -0,0 +1,14 @@
++import { StrictMode } from 'react';
++import { createRoot } from 'react-dom/client';
++import { App } from './App';
++
++const rootElement = document.getElementById('root');
++if (!rootElement) {
++  throw new Error('Root element #root not found in index.html');
++}
++
++createRoot(rootElement).render(
++  <StrictMode>
++    <App />
++  </StrictMode>,
++);
+diff --git a/apps/web/src/App.tsx b/apps/web/src/App.tsx
+new file mode 100644
+index 0000000..1e18933
+--- /dev/null
++++ b/apps/web/src/App.tsx
+@@ -0,0 +1,8 @@
++export function App() {
++  return (
++    <main>
++      <h1>Business Planner</h1>
++      <p>v0.1.0 — placeholder shell. Real UI lands in Story 1.4.</p>
++    </main>
++  );
++}
+diff --git a/apps/web/src/App.test.tsx b/apps/web/src/App.test.tsx
+new file mode 100644
+index 0000000..633266d
+--- /dev/null
++++ b/apps/web/src/App.test.tsx
+@@ -0,0 +1,10 @@
++import { render, screen } from '@testing-library/react';
++import { describe, expect, it } from 'vitest';
++import { App } from './App';
++
++describe('App', () => {
++  it('renders the Business Planner heading', () => {
++    render(<App />);
++    expect(screen.getByRole('heading', { name: /business planner/i })).toBeInTheDocument();
++  });
++});
+diff --git a/apps/web/src/vitest.setup.ts b/apps/web/src/vitest.setup.ts
+new file mode 100644
+index 0000000..bb02c60
+--- /dev/null
++++ b/apps/web/src/vitest.setup.ts
+@@ -0,0 +1 @@
++import '@testing-library/jest-dom/vitest';
+diff --git a/apps/server/package.json b/apps/server/package.json
+new file mode 100644
+index 0000000..a9b97ce
+--- /dev/null
++++ b/apps/server/package.json
+@@ -0,0 +1,27 @@
++{
++  "name": "@bp/server",
++  "version": "0.1.0",
++  "private": true,
++  "type": "module",
++  "scripts": {
++    "dev": "tsx watch src/main.ts",
++    "build": "tsc",
++    "start": "node dist/main.js",
++    "typecheck": "tsc --noEmit",
++    "lint": "eslint . --max-warnings 0",
++    "test": "vitest run"
++  },
++  "dependencies": {
++    "@bp/shared": "workspace:*",
++    "@fastify/cors": "^11.0.1",
++    "dotenv": "^16.4.7",
++    "fastify": "^5.2.1",
++    "zod": "^3.24.1"
++  },
++  "devDependencies": {
++    "@types/node": "^22.10.5",
++    "tsx": "^4.19.2",
++    "typescript": "^5.7.3",
++    "vitest": "^2.1.8"
++  }
++}
+diff --git a/apps/server/tsconfig.json b/apps/server/tsconfig.json
+new file mode 100644
+index 0000000..d51298f
+--- /dev/null
++++ b/apps/server/tsconfig.json
+@@ -0,0 +1,12 @@
++{
++  "extends": "../../tsconfig.base.json",
++  "compilerOptions": {
++    "lib": ["ES2022"],
++    "outDir": "dist",
++    "rootDir": "src",
++    "types": ["node"],
++    "declaration": false,
++    "sourceMap": true
++  },
++  "include": ["src"]
++}
+diff --git a/apps/server/vitest.config.ts b/apps/server/vitest.config.ts
+new file mode 100644
+index 0000000..19f3ba8
+--- /dev/null
++++ b/apps/server/vitest.config.ts
+@@ -0,0 +1,9 @@
++import { defineConfig } from 'vitest/config';
++
++export default defineConfig({
++  test: {
++    environment: 'node',
++    globals: false,
++    include: ['src/**/*.{test,spec}.ts'],
++  },
++});
+diff --git a/apps/server/src/main.ts b/apps/server/src/main.ts
+new file mode 100644
+index 0000000..459cdf0
+--- /dev/null
++++ b/apps/server/src/main.ts
+@@ -0,0 +1,11 @@
++import 'dotenv/config';
++import { buildServer } from './server';
++
++const port = Number(process.env.PORT ?? 3000);
++const app = await buildServer();
++try {
++  await app.listen({ host: '127.0.0.1', port });
++} catch (err) {
++  app.log.error(err);
++  process.exit(1);
++}
+diff --git a/apps/server/src/server.ts b/apps/server/src/server.ts
+new file mode 100644
+index 0000000..dd2110b
+--- /dev/null
++++ b/apps/server/src/server.ts
+@@ -0,0 +1,15 @@
++import Fastify from 'fastify';
++import cors from '@fastify/cors';
++
++export async function buildServer() {
++  const app = Fastify({ logger: true });
++
++  await app.register(cors, {
++    origin: 'http://localhost:5173',
++    credentials: false,
++  });
++
++  app.get('/api/health', () => ({ status: 'ok' }));
++
++  return app;
++}
+diff --git a/apps/server/src/server.test.ts b/apps/server/src/server.test.ts
+new file mode 100644
+index 0000000..4dcff50
+--- /dev/null
++++ b/apps/server/src/server.test.ts
+@@ -0,0 +1,21 @@
++import { afterAll, beforeAll, describe, expect, it } from 'vitest';
++import { buildServer } from './server';
++
++describe('GET /api/health', () => {
++  let app: Awaited<ReturnType<typeof buildServer>>;
++
++  beforeAll(async () => {
++    app = await buildServer();
++    await app.ready();
++  });
++
++  afterAll(async () => {
++    await app.close();
++  });
++
++  it('returns 200 with status ok', async () => {
++    const response = await app.inject({ method: 'GET', url: '/api/health' });
++    expect(response.statusCode).toBe(200);
++    expect(response.json()).toEqual({ status: 'ok' });
++  });
++});
+diff --git a/packages/shared/package.json b/packages/shared/package.json
+new file mode 100644
+index 0000000..f1f2bbb
+--- /dev/null
++++ b/packages/shared/package.json
+@@ -0,0 +1,20 @@
++{
++  "name": "@bp/shared",
++  "version": "0.1.0",
++  "private": true,
++  "type": "module",
++  "main": "./src/index.ts",
++  "types": "./src/index.ts",
++  "exports": {
++    ".": {
++      "types": "./src/index.ts",
++      "import": "./src/index.ts"
++    }
++  },
++  "scripts": {
++    "build": "echo \"no build step\"",
++    "typecheck": "tsc --noEmit",
++    "lint": "eslint . --max-warnings 0",
++    "test": "echo \"no tests yet\""
++  }
++}
+diff --git a/packages/shared/tsconfig.json b/packages/shared/tsconfig.json
+new file mode 100644
+index 0000000..56c2be2
+--- /dev/null
++++ b/packages/shared/tsconfig.json
+@@ -0,0 +1,9 @@
++{
++  "extends": "../../tsconfig.base.json",
++  "compilerOptions": {
++    "lib": ["ES2022"],
++    "noEmit": true,
++    "declaration": false
++  },
++  "include": ["src"]
++}
+diff --git a/packages/shared/src/index.ts b/packages/shared/src/index.ts
+new file mode 100644
+index 0000000..cb0ff5c
+--- /dev/null
++++ b/packages/shared/src/index.ts
+@@ -0,0 +1 @@
++export {};
+diff --git a/.husky/pre-commit b/.husky/pre-commit
+new file mode 100644
+index 0000000..5ee7abd
+--- /dev/null
++++ b/.husky/pre-commit
+@@ -0,0 +1 @@
++pnpm exec lint-staged

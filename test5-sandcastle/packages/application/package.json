@@ -1,0 +1,12 @@
+{
+  "name": "@bp-agent/application",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "dependencies": {
+    "@bp-agent/domain": "workspace:*"
+  }
+}

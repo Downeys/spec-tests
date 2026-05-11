@@ -1,0 +1,17 @@
+{
+  "name": "@bp-agent/api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./main.ts"
+  },
+  "dependencies": {
+    "@bp-agent/domain": "workspace:*",
+    "@bp-agent/application": "workspace:*",
+    "@bp-agent/external": "workspace:*",
+    "hono": "^4.0.0",
+    "zod": "^4.4.3",
+    "@hono/node-server": "^1.0.0"
+  }
+}
